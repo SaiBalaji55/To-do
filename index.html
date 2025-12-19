@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Todo App</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 60%;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    button {
+      margin: 2px;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>To-Do List (Backend Connected)</h2>
+
+  <input type="text" id="title" placeholder="Enter new task">
+  <button onclick="addTodo()">Add Todo</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>S.No</th>
+        <th>Task</th>
+        <th>Completed</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="todoTable"></tbody>
+  </table>
+
+<script>
+const API_URL = "http://localhost:5000/api/todos";
+
+let editId = null;
+
+// LOAD TODOS
+async function loadTodos() {
+  const res = await fetch(API_URL);
+  const todos = await res.json();
+
+  const table = document.getElementById("todoTable");
+  table.innerHTML = "";
+
+  todos.forEach((todo, index) => {
+    table.innerHTML += `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${todo.title}</td>
+        <td>
+          <button onclick="toggleComplete('${todo._id}', ${todo.completed})">
+            ${todo.completed ? "Yes" : "No"}
+          </button>
+        </td>
+        <td>
+          <button onclick="editTodo('${todo._id}', '${todo.title}')">Edit</button>
+          <button onclick="deleteTodo('${todo._id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+// TOGGLE COMPLETED
+async function toggleComplete(id, currentStatus) {
+  await fetch(`${API_URL}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ completed: !currentStatus })
+  });
+  loadTodos();
+}
+
+// ADD OR UPDATE TODO
+async function addTodo() {
+  const title = document.getElementById("title").value;
+  if (!title) return alert("Enter task");
+
+  if (editId) {
+    await fetch(`${API_URL}/${editId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title })
+    });
+    editId = null;
+  } else {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title })
+    });
+  }
+
+  document.getElementById("title").value = "";
+  loadTodos();
+}
+
+// EDIT TODO
+function editTodo(id, title) {
+  document.getElementById("title").value = title;
+  editId = id;
+}
+
+// DELETE TODO
+async function deleteTodo(id) {
+  if (!confirm("Delete this task?")) return;
+
+  await fetch(`${API_URL}/${id}`, {
+    method: "DELETE"
+  });
+  loadTodos();
+}
+
+// INITIAL LOAD
+loadTodos();
+</script>
+
+
+</body>
+</html>
